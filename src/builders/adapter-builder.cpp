@@ -19,6 +19,8 @@ namespace builders {
     }
 
     auto AdapterBuilder::build() const -> common::adapter_t {
+        this->validate();
+
         if (this->type == adapter_types::text) {
             return common::adapter_t(new adapters::TextAdapter());
         } else if (this->type == adapter_types::binary) {
@@ -34,7 +36,7 @@ namespace builders {
             throw (std::invalid_argument("Adapter type doesn't set"));
         }
 
-        if (this->type == adapter_types::file_binary && this->input_file.empty()) {
+        if ((this->type == adapter_types::file_binary || this->type == adapter_types::text) && this->input_file.empty()) {
             throw (std::invalid_argument("Input file name doesn't set"));
         }
 
