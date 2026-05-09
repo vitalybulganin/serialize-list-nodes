@@ -2,7 +2,7 @@
 * \file
 * - Program:       pack-list
 * - File:          text-adapter.h
-* - Created:       05/06/2027
+* - Created:       05/06/2026
 * - Author:        Vitaly Bulganin
 * - Description:
 * - Comments:

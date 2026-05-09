@@ -102,7 +102,7 @@ namespace adapters {
                 rand_index = static_cast<std::int64_t>(found->second);
             }
 
-            const auto data_size = node->data.size();
+            const auto data_size = static_cast<std::uint16_t>(node->data.length());
 
             writer.write_pod(rand_index);
             writer.write_pod(data_size);
@@ -124,10 +124,10 @@ namespace adapters {
 
         for (std::uint64_t i = 0; i < nodes_count; ++i) {
             auto rand_index = reader.read_pod<std::int64_t>();
-            auto data_size = reader.read_pod<std::uint64_t>();
+            auto data_size = reader.read_pod<std::uint16_t>();
 
             auto *node = new common::ListNode();
-            node->data = reader.read_string(static_cast<std::size_t>(data_size));
+            node->data = reader.read_string(data_size);
 
             if (not nodes.empty()) {
                 node->prev = nodes.back();
