@@ -17,34 +17,70 @@
 #ifndef __GTEST_BINARY_FILE_ADAPTER_H_EE0029F0_72C4_49C4_A819_625008437801__
 #define __GTEST_BINARY_FILE_ADAPTER_H_EE0029F0_72C4_49C4_A819_625008437801__
 //-------------------------------------------------------------------------//
+#include <fstream>
+//-------------------------------------------------------------------------//
 #include <gtest/gtest.h>
 //-------------------------------------------------------------------------//
 #include <adapter-builder.h>
 //-------------------------------------------------------------------------//
-inline auto compare(const std::unique_ptr<common::ListNode> &left, const std::unique_ptr<common::ListNode> &right) -> int {
-    return 0;
-}
+#include "gtest-common.h"
 //-------------------------------------------------------------------------//
-TEST(TestBinaryFileAdapter, serialize) {
-    auto expected = std::vector<std::uint8_t>();
-    auto head = std::make_unique<common::ListNode>();
-    auto adapter = builders::make_adapter().set(builders::adapter_types::binary).build();
-    ASSERT_TRUE(adapter);
+TEST(BinaryFileAdapter, SerializeDeserializeFile) {
+    const auto file = tmp_file("list_serialization_binary_file.bin");
+    auto source = make_list({"apple", "banana", "carrot"}, {2, -1, 1});
 
-    auto buffer = adapter->serialize(head.get());
-    EXPECT_FALSE(buffer.empty());
-    EXPECT_EQ(buffer, expected);
+    auto writer = builders::make_adapter()
+        .set(builders::adapter_types::file_binary)
+        .set_output_file(file)
+        .set_input_file(file)
+        .build();
+
+    writer->serialize(source.get());
+    auto restored = writer->deserialize(nullptr, 0);
+
+    expect_list_equals(restored.get(), {"apple", "banana", "carrot"}, {2, -1, 1});
+
+    std::remove(file.c_str());
 }
 
-TEST(TestFileAdapter, deserialize) {
-    auto buffer = std::vector<std::uint8_t>();
-    auto expected = std::unique_ptr<common::ListNode>();
-    auto adapter = builders::make_adapter().set(builders::adapter_types::binary).build();
-    ASSERT_TRUE(adapter);
+TEST(BinaryFileAdapter, SerializeDeserializeEmptyFileList) {
+    const auto file = tmp_file("empty_list_binary_file.bin");
 
-    auto head = adapter->deserialize(buffer.data(), buffer.size());
-    ASSERT_TRUE(head);
-    EXPECT_EQ(compare(head, expected), 0);
+    auto adapter = builders::make_adapter()
+        .set(builders::adapter_types::file_binary)
+        .set_output_file(file)
+        .set_input_file(file)
+        .build();
+
+    adapter->serialize(nullptr);
+    auto restored = adapter->deserialize(nullptr, 0);
+
+    EXPECT_EQ(restored.get(), nullptr);
+
+    std::remove(file.c_str());
+}
+
+TEST(BinaryFileAdapter, RejectsTruncatedFile) {
+    const auto file = tmp_file("truncated_binary_file.bin");
+
+    {
+        std::ofstream out(file, std::ios::binary);
+        const std::uint64_t count = 1;
+        out.write(reinterpret_cast<const char*>(&count), sizeof(count));
+    }
+
+    auto adapter = builders::make_adapter()
+        .set(builders::adapter_types::file_binary)
+        .set_input_file(file)
+        .set_output_file(file)
+        .build();
+
+    EXPECT_THROW(
+        static_cast<void>(adapter->deserialize(nullptr, 0)),
+        std::invalid_argument
+    );
+
+    std::remove(file.c_str());
 }
 //-------------------------------------------------------------------------//
 #endif // __GTEST_BINARY_FILE_ADAPTER_H_EE0029F0_72C4_49C4_A819_625008437801__
